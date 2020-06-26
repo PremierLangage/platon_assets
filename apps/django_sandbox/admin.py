@@ -15,6 +15,7 @@ class SandboxAdmin(admin.ModelAdmin):
     
     
     def enable(self, request, queryset):
+        """Allow to enable selected Sandboxes."""
         updated = queryset.update(enabled=True)
         self.message_user(request, ngettext(
             '%d Sandbox was successfully enabled.',
@@ -24,6 +25,7 @@ class SandboxAdmin(admin.ModelAdmin):
     
     
     def disable(self, request, queryset):
+        """Allows to disable selected Sandboxes."""
         updated = queryset.update(enabled=False)
         self.message_user(request, ngettext(
             '%d Sandbox was successfully disable.',
@@ -33,6 +35,7 @@ class SandboxAdmin(admin.ModelAdmin):
     
     
     def poll_specifications(self, request, queryset):
+        """Poll specifications of selected Sandboxes, if they're enabled."""
         success = failure = disabled = 0
         failure_lst = []
         for sandbox in queryset:

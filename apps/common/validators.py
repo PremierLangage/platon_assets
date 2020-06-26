@@ -8,8 +8,7 @@ from django.utils.deconstruct import deconstructible
 
 @deconstructible
 class MinDurationValidator:
-    """Ensure that a DurationField value is not shorter than the given
-    duration."""
+    """Ensure that a DurationField is not shorter than the given duration."""
     
     
     def __init__(self, duration: Union[int, timedelta]):
@@ -32,8 +31,7 @@ class MinDurationValidator:
 
 @deconstructible
 class MaxDurationValidator:
-    """Ensure that a DurationField value is not longer than the given
-    duration."""
+    """Ensure that a DurationField is not longer than the given duration."""
     
     
     def __init__(self, duration: Union[int, timedelta]):

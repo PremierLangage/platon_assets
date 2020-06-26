@@ -16,7 +16,7 @@ class DjangoSandboxConfig(AppConfig):
     def ready(self):
         """Do some checks when django starts.
         
-        * SANDBOX_POLL_USAGE_EVERY settings in as integer above 15.
+        * SANDBOX_POLL_USAGE_EVERY settings in an integer above 15.
         * SANDBOX_POLL_SPECS_EVERY settings is an integer above 300.
         * Every existing "poll usage" periodic task are done every
           SANDBOX_POLL_SPECS_EVERY.
