@@ -54,6 +54,8 @@ THIRD_PARTY_APPS = [
 ]
 PROJECT_APPS = [
     'django_sandbox.apps.DjangoSandboxConfig',
+    'sandbox',
+    'playexo',
 ]
 INSTALLED_APPS = PREREQ_APPS + THIRD_PARTY_APPS + PROJECT_APPS
 
