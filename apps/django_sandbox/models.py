@@ -130,7 +130,7 @@ class Sandbox(models.Model):
         return usage
     
     
-    async def execute(self, user: User, config: Dict[str, Any], environment: BinaryIO = None) -> 'SandboxExecution':
+    async def execute(self, config: Dict[str, Any], user: User = None, environment: BinaryIO = None) -> 'SandboxExecution':
         """Execute a request on the Sandbox based on `config` and
         `environment`.
         
@@ -170,22 +170,18 @@ class Sandbox(models.Model):
             
             async with ASandbox(self.url) as asandbox:
                 response = await asandbox.execute(config, environment)
-            
-            execution = SandboxExecution.objects.create(
-                sandbox=self, user=user, config=config, response=response, environment=response.get("environment"),
-                expire=response.get("expire")
-            )
+
+            func = sync_to_async(SandboxExecution.objects.create)
+            execution = await func(sandbox=self, user=user, config=config, response=response)
         
         except ClientError:
-            execution = SandboxExecution.objects.create(
-                sandbox=self, user=user, config=config, success=False, traceback=traceback.format_exc()
-            )
+            func = sync_to_async(SandboxExecution.objects.create)
+            execution = await func(sandbox=self, user=user, config=config, success=False, traceback=traceback.format_exc())
             logger.warning(f"Execution failed on sandbox {self}, see execution of id '{execution.pk}'")
         
         except SandboxDisabledError:
-            execution = SandboxExecution.objects.create(
-                sandbox=self, user=user, config=config, success=False, traceback=traceback.format_exc()
-            )
+            func = sync_to_async(SandboxExecution.objects.create)
+            execution = await func(sandbox=self, user=user, config=config, success=False, traceback=traceback.format_exc())
             logger.warning(f"Execution failed on sandbox {self} because it was disabled,"
                            f"see execution of id '{execution.pk}'")
         
@@ -434,7 +430,7 @@ class SandboxExecution(models.Model):
     will be None if `success` is False.
     """
     sandbox = models.ForeignKey(Sandbox, related_name="executions", null=True, on_delete=models.SET_NULL)
-    user = models.ForeignKey(User, related_name="executions", null=True, on_delete=models.SET_NULL)
+    user = models.ForeignKey(User, related_name="executions", null=True, blank=True, on_delete=models.SET_NULL)
     date = models.DateTimeField(auto_now_add=True)
     success = models.BooleanField(default=True)
     traceback = models.TextField(default="")
