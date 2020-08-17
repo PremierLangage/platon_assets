@@ -1,22 +1,74 @@
-from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest
-from django.views.decorators.http import require_POST
-from django.views import View
+from asgiref.sync import async_to_sync, sync_to_async
+from django.core.exceptions import PermissionDenied
+from django.http import (HttpRequest, HttpResponse, HttpResponseBadRequest, HttpResponseNotFound,
+                         JsonResponse)
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
+
+from playexo.models import AnonPLSession, LoggedPLSession, PL
+from playexo.utils import async_is_user_authenticated, get_anonymous_user_id
 
 
 
-@login_required
+@csrf_exempt
 @require_POST
-class EvaluateView(View):
+def evaluate_pl(request: HttpRequest, pl_id: int) -> HttpResponse:
+    answer = request.POST["answer"]
+    try:
+        pl = PL.objects.get(id=pl_id)
+    except PL.DoesNotExist:
+        return HttpResponseNotFound("PL does not exists")
+    if request.user:
+        try:
+            session = LoggedPLSession.objects.get(user=request.user, pl=pl)
+        except LoggedPLSession.DoesNotExist:
+            return HttpResponseNotFound("PLSession does not exists")
+    else:
+        user_id = get_anonymous_user_id(request)
+        try:
+            session = AnonPLSession.objects.get(user_id=user_id, pl=pl)
+        except AnonPLSession.DoesNotExist:
+            return HttpResponseNotFound("PLSession does not exists")
     
-    def post(self, request: HttpRequest):
-        post = request.POST
+    grade, feedback = session.evaluate(answer)
+    
+    data = session.get_view_data()
+    data["feedback"] = feedback
+    data["grade"] = grade
+    return JsonResponse(data=data)
+
+
+async def get_pl(request, pl_id: int) -> HttpResponse:
+    try:
+        print("count : ", end="")
+        print(await sync_to_async(PL.objects.all().count)())
+        pl = await sync_to_async(PL.objects.get)(id=pl_id)
+    except PL.DoesNotExist:
+        return HttpResponseNotFound("PL does not exists")
+    if await async_is_user_authenticated(request.user):
+        try:
+            session = await sync_to_async(LoggedPLSession.objects.select_related('pl').get)(
+                user=request.user, pl=pl)
+        except LoggedPLSession.DoesNotExist:
+            session = await LoggedPLSession.build(pl, request.user)
+    else:
+        user_id = get_anonymous_user_id(request)
+        try:
+            session = await sync_to_async(AnonPLSession.objects.select_related('pl').get)(
+                user_id=user_id, pl=pl)
+        except AnonPLSession.DoesNotExist:
+            session = await AnonPLSession.build(pl, user_id)
+    return JsonResponse(session.get_view_data())
 
 
 
-@login_required
+@csrf_exempt
 @require_POST
-class BuildView(View):
-    
-    def post(self, request: HttpRequest):
-        post = request.POST
+def post_pl(request) -> HttpResponse:
+    post = request.POST
+    if "name" not in post or "data" not in post:
+        return HttpResponseBadRequest("Missing 'name' or 'data' field")
+    name = request.POST["name"]
+    data = request.POST["data"]
+    pl = PL.objects.create(name=name, data=data)
+    return JsonResponse(data={"pl_id": pl.id})

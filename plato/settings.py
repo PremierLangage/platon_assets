@@ -54,7 +54,9 @@ THIRD_PARTY_APPS = [
 ]
 PROJECT_APPS = [
     'django_sandbox.apps.DjangoSandboxConfig',
-    'sandbox',
+    'assets',
+    'playactivity',
+    'playcourse',
     'playexo',
 ]
 INSTALLED_APPS = PREREQ_APPS + THIRD_PARTY_APPS + PROJECT_APPS
@@ -211,6 +213,7 @@ SANDBOX_POLL_USAGE_EVERY = 30
 # Seconds between polls of sandboxes specifications. Must not be less than 300.
 SANDBOX_POLL_SPECS_EVERY = 60 * 10
 
+DEFAULT_TEST_SANDBOX = "http://localhost:7000"
 ################################################################################
 
 if APPS_DIR not in sys.path:

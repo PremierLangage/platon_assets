@@ -1,3 +1,9 @@
 from django.contrib import admin
 
-# Register your models here.
+from playexo.models import PL
+
+
+
+@admin.register(PL)
+class PlAdmin(admin.ModelAdmin):
+    list_display = ('name', 'id')
