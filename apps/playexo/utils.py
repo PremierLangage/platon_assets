@@ -1,12 +1,11 @@
 import os
 import tarfile
 import tempfile
+import time
 import uuid
 from typing import AnyStr
 
-import time
-
-from asgiref.sync import sync_to_async
+from channels.db import database_sync_to_async
 from django.http import HttpRequest
 
 from django_sandbox.models import Sandbox
@@ -29,7 +28,7 @@ def create_seed() -> int:
 
 
 
-@sync_to_async
+@database_sync_to_async
 def async_get_less_used_sandbox() -> Sandbox:
     """Returns the less used sandbox, base on its current usage"""
     # TODO
@@ -62,6 +61,6 @@ def get_anonymous_user_id(request: HttpRequest) -> str:
     return request.session["user_id"]
 
 
-@sync_to_async
+@database_sync_to_async
 def async_is_user_authenticated(user):
     return user.is_authenticated

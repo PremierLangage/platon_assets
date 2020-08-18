@@ -1,32 +1,30 @@
-from asgiref.sync import async_to_sync, sync_to_async
+from channels.db import database_sync_to_async
 from django.core.exceptions import PermissionDenied
 from django.http import (HttpRequest, HttpResponse, HttpResponseBadRequest, HttpResponseNotFound,
                          JsonResponse)
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_POST
 
 from playexo.models import AnonPLSession, LoggedPLSession, PL
 from playexo.utils import async_is_user_authenticated, get_anonymous_user_id
 
 
 
-@csrf_exempt
-@require_POST
-def evaluate_pl(request: HttpRequest, pl_id: int) -> HttpResponse:
+async def evaluate_pl(request: HttpRequest, pl_id: int) -> HttpResponse:
     answer = request.POST["answer"]
     try:
-        pl = PL.objects.get(id=pl_id)
+        pl = await database_sync_to_async(PL.objects.get)(id=pl_id)
     except PL.DoesNotExist:
         return HttpResponseNotFound("PL does not exists")
     if request.user:
         try:
-            session = LoggedPLSession.objects.get(user=request.user, pl=pl)
+            session = await database_sync_to_async(LoggedPLSession.objects.get)(user=request.user, pl=pl)
         except LoggedPLSession.DoesNotExist:
             return HttpResponseNotFound("PLSession does not exists")
     else:
         user_id = get_anonymous_user_id(request)
         try:
-            session = AnonPLSession.objects.get(user_id=user_id, pl=pl)
+            session = await database_sync_to_async(AnonPLSession.objects.get)(user_id=user_id, pl=pl)
         except AnonPLSession.DoesNotExist:
             return HttpResponseNotFound("PLSession does not exists")
     
@@ -40,24 +38,24 @@ def evaluate_pl(request: HttpRequest, pl_id: int) -> HttpResponse:
 
 async def get_pl(request, pl_id: int) -> HttpResponse:
     try:
-        print("count : ", end="")
-        print(await sync_to_async(PL.objects.all().count)())
-        pl = await sync_to_async(PL.objects.get)(id=pl_id)
+        pl = await database_sync_to_async(PL.objects.get)(id=pl_id)
     except PL.DoesNotExist:
         return HttpResponseNotFound("PL does not exists")
     if await async_is_user_authenticated(request.user):
         try:
-            session = await sync_to_async(LoggedPLSession.objects.select_related('pl').get)(
+            session = await database_sync_to_async(LoggedPLSession.objects.select_related('pl').get)(
                 user=request.user, pl=pl)
         except LoggedPLSession.DoesNotExist:
             session = await LoggedPLSession.build(pl, request.user)
     else:
         user_id = get_anonymous_user_id(request)
         try:
-            session = await sync_to_async(AnonPLSession.objects.select_related('pl').get)(
+            session = await database_sync_to_async(AnonPLSession.objects.select_related('pl').get)(
                 user_id=user_id, pl=pl)
+            print(session)
         except AnonPLSession.DoesNotExist:
             session = await AnonPLSession.build(pl, user_id)
+            print("build")
     return JsonResponse(session.get_view_data())
 
 

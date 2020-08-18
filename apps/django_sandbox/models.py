@@ -5,7 +5,7 @@ import traceback
 from typing import Any, BinaryIO, Dict, Optional, Tuple
 
 from aiohttp import ClientError
-from asgiref.sync import sync_to_async
+from channels.db import database_sync_to_async
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import ArrayField
@@ -74,7 +74,7 @@ class Sandbox(models.Model):
         
         host, container = raw_specs["host"], raw_specs["container"]
         
-        await sync_to_async(SandboxSpecs.objects.filter(sandbox=self).update)(
+        await database_sync_to_async(SandboxSpecs.objects.filter(sandbox=self).update)(
             polled=True, sandbox_version=host["sandbox_version"],
             docker_version=host["docker_version"], cpu_core=host["cpu"]["core"],
             cpu_logical=host["cpu"]["logical"], cpu_freq_min=host["cpu"]["freq_min"],
@@ -82,7 +82,7 @@ class Sandbox(models.Model):
             memory_swap=host["memory"]["swap"], memory_storage=host["memory"]["storage"]
         )
         
-        await sync_to_async(ContainerSpecs.objects.filter(sandbox=self).update)(
+        await database_sync_to_async(ContainerSpecs.objects.filter(sandbox=self).update)(
             polled=True, working_dir_device=container["working_dir_device"],
             count=container["count"], process=container["process"],
             cpu_count=container["cpu"]["count"], cpu_period=container["cpu"]["period"],
@@ -94,8 +94,8 @@ class Sandbox(models.Model):
             libraries=libs["libraries"], bin=libs["bin"]
         )
         
-        host = await sync_to_async(SandboxSpecs.objects.get)(sandbox=self)
-        container = await sync_to_async(ContainerSpecs.objects.get)(sandbox=self)
+        host = await database_sync_to_async(SandboxSpecs.objects.get)(sandbox=self)
+        container = await database_sync_to_async(ContainerSpecs.objects.get)(sandbox=self)
         return host, container
     
     
@@ -106,13 +106,13 @@ class Sandbox(models.Model):
         will be produced, all the other fields, with the exception of `sandbox`
         and `date` will be None."""
         if not self.enabled:
-            return await sync_to_async(SandboxUsage.objects.create)(sandbox=self, enabled=False)
+            return await database_sync_to_async(SandboxUsage.objects.create)(sandbox=self, enabled=False)
         
         try:
             async with ASandbox(self.url) as asandbox:
                 raw = await asandbox.usage()
             
-            usage = await sync_to_async(SandboxUsage.objects.create)(
+            usage = await database_sync_to_async(SandboxUsage.objects.create)(
                 sandbox=self, cpu_usage=[raw["cpu"]["usage"]] + raw["cpu"]["usage_avg"],
                 cpu_freq=raw["cpu"]["frequency"], memory_ram=raw["memory"]["ram"],
                 memory_swap=raw["memory"]["swap"], memory_storage=raw["memory"]["storage"],
@@ -125,7 +125,7 @@ class Sandbox(models.Model):
                 receiving_bytes=raw["network"]["received_bytes"]
             )
         except ClientError:
-            usage = await sync_to_async(SandboxUsage.objects.create)(sandbox=self, reached=False)
+            usage = await database_sync_to_async(SandboxUsage.objects.create)(sandbox=self, reached=False)
         
         return usage
     
@@ -171,16 +171,16 @@ class Sandbox(models.Model):
             async with ASandbox(self.url) as asandbox:
                 response = await asandbox.execute(config, environment)
 
-            func = sync_to_async(SandboxExecution.objects.create)
+            func = database_sync_to_async(SandboxExecution.objects.create)
             execution = await func(sandbox=self, user=user, config=config, response=response)
         
         except ClientError:
-            func = sync_to_async(SandboxExecution.objects.create)
+            func = database_sync_to_async(SandboxExecution.objects.create)
             execution = await func(sandbox=self, user=user, config=config, success=False, traceback=traceback.format_exc())
             logger.warning(f"Execution failed on sandbox {self}, see execution of id '{execution.pk}'")
         
         except SandboxDisabledError:
-            func = sync_to_async(SandboxExecution.objects.create)
+            func = database_sync_to_async(SandboxExecution.objects.create)
             execution = await func(sandbox=self, user=user, config=config, success=False, traceback=traceback.format_exc())
             logger.warning(f"Execution failed on sandbox {self} because it was disabled,"
                            f"see execution of id '{execution.pk}'")

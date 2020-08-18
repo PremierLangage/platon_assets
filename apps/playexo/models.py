@@ -1,7 +1,7 @@
 import json
 import logging
 
-from asgiref.sync import async_to_sync, sync_to_async
+from channels.db import database_sync_to_async
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
@@ -11,7 +11,7 @@ from playactivity.models import Activity
 from playcourse.models import Course
 from playexo.components import components_source
 from playexo.exceptions import BuildError, GradeError
-from playexo.utils import DEFAULT_BUILDER, create_seed, async_get_less_used_sandbox, tar_from_dic
+from playexo.utils import DEFAULT_BUILDER, async_get_less_used_sandbox, create_seed, tar_from_dic
 
 
 logger = logging.getLogger(__name__)
@@ -99,7 +99,7 @@ class PLSession(models.Model):
     async def evaluate(self, answers: dict):
         pl_data = dict(self.pl.data)
         
-        sandbox = get_less_used_sandbox()
+        sandbox = await async_get_less_used_sandbox()
         config = pl_data.get("config", {}).get("builder", DEFAULT_BUILDER)
         
         execution = await sandbox.execute(config=config, environment=env)
@@ -139,7 +139,7 @@ class LoggedPLSession(PLSession):
     @classmethod
     async def build(cls, pl: PL, user: User, seed: int = None, params: dict = None) -> PLSession:
         context, seed = await super().build_context(pl, seed, params)
-        return await sync_to_async(cls.objects.create)(context=context, pl=pl, user=user, seed=seed)
+        return await database_sync_to_async(cls.objects.create)(context=context, pl=pl, user=user, seed=seed)
 
 
 
@@ -150,7 +150,7 @@ class AnonPLSession(PLSession):
     @classmethod
     async def build(cls, pl: PL, user_id: str, seed: int = None, params: dict = None) -> PLSession:
         context, seed = await super().build_context(pl, seed, params)
-        return await sync_to_async(cls.objects.create)(context=context, pl=pl, user_id=user_id,
+        return await database_sync_to_async(cls.objects.create)(context=context, pl=pl, user_id=user_id,
                                                        seed=seed)
 
 
