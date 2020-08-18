@@ -1,6 +1,5 @@
 # Plato config file
-plato.config.py
-
+plato/config.py
 
 # Pycharm
 .idea/

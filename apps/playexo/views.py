@@ -52,10 +52,8 @@ async def get_pl(request, pl_id: int) -> HttpResponse:
         try:
             session = await database_sync_to_async(AnonPLSession.objects.select_related('pl').get)(
                 user_id=user_id, pl=pl)
-            print(session)
         except AnonPLSession.DoesNotExist:
             session = await AnonPLSession.build(pl, user_id)
-            print("build")
     return JsonResponse(session.get_view_data())
 
 

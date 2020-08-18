@@ -6,6 +6,7 @@ import uuid
 from typing import AnyStr
 
 from channels.db import database_sync_to_async
+from django.db import models
 from django.http import HttpRequest
 
 from django_sandbox.models import Sandbox
@@ -59,6 +60,7 @@ def get_anonymous_user_id(request: HttpRequest) -> str:
     if "user_id" not in request.session:
         request.session["user_id"] = str(uuid.uuid4())
     return request.session["user_id"]
+
 
 
 @database_sync_to_async
