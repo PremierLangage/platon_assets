@@ -9,7 +9,7 @@ from playexo.models import AnonPLSession, LoggedPLSession, PL
 from playexo.utils import async_is_user_authenticated, get_anonymous_user_id
 
 
-
+@require_POST
 async def evaluate_pl(request: HttpRequest, pl_id: int) -> HttpResponse:
     answer = request.POST["answer"]
     try:

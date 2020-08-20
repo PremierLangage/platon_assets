@@ -59,15 +59,3 @@ class ViewsTestCase(TransactionTestCase):
     
     async def test_anon_build_random_add(self):
         await self.generic_test_build_random_add(self.anon_ac, AnonPLSession)
-    
-    
-    async def generic_test_evaluate_random_add(self, client, session):
-        response = await client.get(reverse("playexo:get_pl", args=[self.pl.id]))
-    
-    
-    async def test_logged_evaluate_random_add(self):
-        await self.generic_test_evaluate_random_add(self.logged_ac, LoggedPLSession)
-    
-    
-    async def test_anon_evaluate_random_add(self):
-        await self.generic_test_evaluate_random_add(self.anon_ac, AnonPLSession)
