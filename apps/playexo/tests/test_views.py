@@ -8,7 +8,7 @@ from django.test import AsyncClient, Client, TransactionTestCase
 from django.urls import reverse
 
 from django_sandbox.models import Sandbox
-from playexo.models import AnonPLSession, LoggedPLSession, PL
+from playexo.models import AnonPLSession, Answer, LoggedPLSession, PL
 
 
 TEST_DATA_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_data")
@@ -24,6 +24,7 @@ class ViewsTestCase(TransactionTestCase):
                                               url=settings.DEFAULT_TEST_SANDBOX,
                                               enabled=True)
         self.logged_client = Client()
+        self.anon_client = Client()
         self.anon_ac = AsyncClient()
         self.logged_ac = AsyncClient()
         self.user = User.objects.create(username="user", password="password")
@@ -65,30 +66,28 @@ class ViewsTestCase(TransactionTestCase):
     
     
     async def generic_test_evaluate_random_add(self, client, session):
-        response = await database_sync_to_async(client.get)(reverse("playexo:get_pl", args=[self.pl.id]))
+        response = await database_sync_to_async(client.get)(
+            reverse("playexo:get_pl", args=[self.pl.id]))
         self.assertContains(response, "op1", status_code=200)
         self.assertEquals(await database_sync_to_async(session.objects.count)(), 1)
         context = (await database_sync_to_async(list)(session.objects.all()))[0].context
         result = context["op1"] + context["op2"]
         
-
-        response = await database_sync_to_async(client.post)(reverse("playexo:post_pl"),
-                                           {"data": self.pl.data, "name": "random_add"})
-        self.assertEquals(await database_sync_to_async(PL.objects.count)(), 2)
-        self.assertContains(response, "", status_code=200)
-        
-        response = await database_sync_to_async(client.post)(reverse("playexo:evaluate_pl", args=[self.pl.id]),
-                                     {"answer": result})
-        self.assertContains(response, "", status_code=200)
+        response = await database_sync_to_async(client.post)(
+            reverse("playexo:evaluate_pl", args=[self.pl.id]),
+            {"answer": result})
+        self.assertContains(response, "\"feedback\": \"Bonne r\\u00e9ponse\"", status_code=200)
+        self.assertEquals((await database_sync_to_async(Answer.objects.all().__getitem__)(0)).grade,
+                          100)
+        self.assertEquals(await database_sync_to_async(Answer.objects.count)(), 1)
     
     
     async def test_logged_evaluate_random_add(self):
         await self.generic_test_evaluate_random_add(self.logged_client, LoggedPLSession)
     
     
-    """
     async def test_anon_evaluate_random_add(self):
-        await self.generic_test_evaluate_random_add(self.anon_ac, AnonPLSession)"""
+        await self.generic_test_evaluate_random_add(self.anon_client, AnonPLSession)
     
     
     async def test_evaluate_no_answer(self):
