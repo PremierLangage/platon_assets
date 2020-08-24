@@ -11,7 +11,9 @@ from playactivity.models import Activity
 from playcourse.models import Course
 from playexo.components import components_source
 from playexo.exceptions import BuildError, GradeError
-from playexo.utils import DEFAULT_BUILDER, async_get_less_used_sandbox, create_seed, tar_from_dic
+from playexo.utils import (DEFAULT_BUILDER, DEFAULT_GRADER, async_get_less_used_sandbox,
+                           create_seed,
+                           tar_from_dic)
 
 
 logger = logging.getLogger(__name__)
@@ -38,7 +40,7 @@ class PLSession(models.Model):
     
     
     @staticmethod
-    def _build_env(pl_data: dict) -> dict:
+    def _build_env(pl_data: dict, answer: dict = None) -> dict:
         env = dict(pl_data['__files'])
         env["components.py"] = components_source()
         
@@ -51,6 +53,9 @@ class PLSession(models.Model):
         
         if 'builder' in pl_data and 'builder.py' not in env:
             env['builder.py'] = pl_data['builder']
+        
+        if answer is not None:
+            env['answer.json'] = json.dumps(answer)
         
         return tar_from_dic(env)
     
@@ -97,20 +102,28 @@ class PLSession(models.Model):
     
     
     async def evaluate(self, answers: dict):
-        pl_data = dict(self.pl.data)
-        
+        pl = await database_sync_to_async(self.__getattribute__)("pl")
         sandbox = await async_get_less_used_sandbox()
-        config = pl_data.get("config", {}).get("builder", DEFAULT_BUILDER)
-        
+        context = {**pl.data, **self.context}
+        config = context.get("config", {}).get("grader", DEFAULT_GRADER)
+        env = self._build_env(context, answer=answers)
         execution = await sandbox.execute(config=config, environment=env)
+        
         if not execution.success:
             raise GradeError(execution.traceback)
         else:
             new_context = json.loads(execution.response["result"])
+        try:
+            grade = new_context["grade"]
+            feedback = new_context["feedback"]
+            del new_context["grade"]
+            del new_context["feedback"]
+        except KeyError as e:
+            raise GradeError("grade and feedback must be added to context")
         
         self.context.update(new_context)
         self.try_count += 1
-        self.save()
+        await database_sync_to_async(self.save)()
         
         return grade, feedback
     
@@ -139,7 +152,8 @@ class LoggedPLSession(PLSession):
     @classmethod
     async def build(cls, pl: PL, user: User, seed: int = None, params: dict = None) -> PLSession:
         context, seed = await super().build_context(pl, seed, params)
-        return await database_sync_to_async(cls.objects.create)(context=context, pl=pl, user=user, seed=seed)
+        return await database_sync_to_async(cls.objects.create)(context=context, pl=pl, user=user,
+                                                                seed=seed)
 
 
 
@@ -150,8 +164,9 @@ class AnonPLSession(PLSession):
     @classmethod
     async def build(cls, pl: PL, user_id: str, seed: int = None, params: dict = None) -> PLSession:
         context, seed = await super().build_context(pl, seed, params)
-        return await database_sync_to_async(cls.objects.create)(context=context, pl=pl, user_id=user_id,
-                                                       seed=seed)
+        return await database_sync_to_async(cls.objects.create)(context=context, pl=pl,
+                                                                user_id=user_id,
+                                                                seed=seed)
 
 
 

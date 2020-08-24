@@ -6,7 +6,6 @@ import uuid
 from typing import AnyStr
 
 from channels.db import database_sync_to_async
-from django.db import models
 from django.http import HttpRequest
 
 from django_sandbox.models import Sandbox
@@ -18,7 +17,7 @@ DEFAULT_BUILDER = {
 }
 
 DEFAULT_GRADER = {
-    "commands":    ["python3 grader.py pl.json context.json"],
+    "commands":    ["python3 grader.py pl.json answer.json context.json"],
     "result_path": "context.json",
 }
 
