@@ -19,8 +19,7 @@
   "evaluator": "import traceback\nimport sys\n\ntry: \n    c += 1\n    if int(response['answer']) == op1 + op2:\n        grade = (100, \"Bonne r\u00e9ponse\")\n    else:\n        grade = (0, \"Mauvaise r\u00e9ponse\")\nexcept:\n    print(traceback.format_exc(), file=sys.stderr)\n    grade = (-1, \"Merci de rentrer un entier\")",
   "__rel_path": "/srv/local/pl/premierlangage/home/lib/demo/random_add.pl",
   "__dependencies": [
-    "/srv/local/pl/premierlangage/home/lib/demo/random_add.pl",
-    "utils/sandboxio.py",
+     "utils/sandboxio.py",
     "builder/before.py",
     "grader/evaluator.py"
   ]

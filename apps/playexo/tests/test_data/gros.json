@@ -82,7 +82,7 @@
       "directory_name":"Yggdrasil"
     }
   ],
-  "title":"Affixe d'un nombre complexe",
+  "title":"title",
   "before":"a = randint(-5, 5, [0])\nb = randint(-5, 5, [0])\nz = a + b*I\njxg.setscript(script_init)",
   "jxg":{
     "attributes":{
@@ -99,7 +99,7 @@
     "decorator":"CustomJSXGraph"
   },
   "script_init":"board.create('grid',[],{gridX:1,gridY:1});\nboard.create('axis',[[0,0],[1,0]],{name:'Re',withLabel:true,label:{position:'urt',offset:[-5,10]},ticks:{visible: false}});\nboard.create('axis',[[0,0],[0,1]],{name:'Im',withLabel:true,label:{position:'urt',offset:[10,0]},ticks:{visible: false}});\nconst M = board.create('point',[0, 0],{size:2,name:'M',color:'red'});\n\nfunction getMouseCoords(e) {\n    let cPos = board.getCoordsTopLeftCorner(e);\n    let absPos = JXG.getPosition(e);\n    let dx = absPos[0]-cPos[0];\n    let dy = absPos[1]-cPos[1];\n    return new JXG.Coords(JXG.COORDS_BY_SCREEN, [dx, dy], board);\n}\n\nfunction down(e) {\n    let coords = getMouseCoords(e);\n    M.setPosition(JXG.COORDS_BY_USER,[coords.usrCoords[1], coords.usrCoords[2]]);\n}\n\nboard.on('down', down)",
-  "text":"Placer le point $% M %$ d'affixe $%{{ z|latex }}%$ dans le plan ci-dessous.",
+  "text":"Placer le point $% M %$ d'affixe $%{{ z|latex }}%$ dans le plan ci-dessous. Affixe",
   "script_solution":"\nboard.create('point',[1, 2],{size:2,name:'Sol',color:'green'});\n// board.create('point',[{{x}}, {{y}}],{size:2,name:'',color:'red'});",
   "evaluator":"x, y = jxg.getpoint('M')\nfrom math import hypot\nif hypot(x-a, y-b) < 0.1:\n    score = 100\n    jxg.addscript(script_solution, globals())\nelse:\n    score = 0\n    jxg.addscript(script_solution, globals())\nfeedback=\"\"",
   "old":"x= drawer.points['M']['x']\ny= drawer.points['M']['y']\n\nfrom jinja2 import Template\nfrom math import hypot\nif hypot(x-a, y-b)<0.1:\n     score=100\n     drawer.script = Template(script_solution).render(locals())\n     drawer.points = {}\n     drawer.disabled = True\nelse:\n     score=0\n     if nbattempt + 1 >= int(maxattempt):\n        drawer.script = Template(script_solution).render(locals())\n        drawer.points = {}\n        drawer.disabled = True\nfeedback=\"\"",
