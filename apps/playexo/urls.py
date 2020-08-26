@@ -9,5 +9,6 @@ urlpatterns = [
     path(r'pl/<int:pl_id>/', views.get_pl, name="get_pl"),
     path(r'pl/', views.post_pl, name="post_pl"),
     path(r'evaluate/<int:pl_id>/', views.evaluate_pl, name="evaluate_pl"),
-    path(r'reroll/<int:pl_id>', views.reroll, name="reroll_pl")
+    path(r'reroll/<int:pl_id>', views.reroll, name="reroll_pl"),
+    path(r'save_answer/<int:pl_id>', views.save_answer, name="save_answer"),
 ]

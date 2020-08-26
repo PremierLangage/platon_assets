@@ -35,6 +35,7 @@ class ViewsTestCase(TransactionTestCase):
         self.pl = PL.objects.create(name="random_add", data=pl_data)
         self.pl.demo = True
         self.pl.save()
+        
     
     
     def tearDown(self) -> None:
@@ -103,3 +104,8 @@ class ViewsTestCase(TransactionTestCase):
                                            {"data": self.pl.data, "name": "random_add"})
         self.assertEquals(PL.objects.count(), 2)
         self.assertContains(response, "", status_code=200)
+
+    def test_evaluate_method_not_allowed(self):
+        response = self.logged_client.get(reverse("playexo:evaluate_pl", args=[self.pl.id]))
+        print(response.content.decode())
+        self.assertContains(response, "Method Not Allowed", status_code=405)

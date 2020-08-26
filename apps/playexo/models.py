@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import AnyStr
 
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import User
@@ -21,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 
 class PL(Asset):
+    """Represents an exercise in the database
+    The data field is a jsonfield where the data is shared by all sessions"""
     name = models.CharField(null=False, max_length=100)
     data = models.JSONField(default=dict)
     course = models.ForeignKey(Course, blank=True, null=True, on_delete=models.CASCADE)
@@ -32,15 +35,19 @@ class PL(Asset):
 
 
 class PLSession(models.Model):
-    context = models.JSONField(default=dict)
-    saved_data = models.JSONField(default=dict)
+    """Represents a session which is unique for a user and a pl (user,pl)"""
+    context = models.JSONField(default=dict)  # Built data
+    saved_data = models.JSONField(default=dict)  # Answer data
     pl = models.ForeignKey(PL, null=False, on_delete=models.CASCADE)
     seed = models.IntegerField(null=False)
     try_count = models.IntegerField(default=0)
     
     
     @staticmethod
-    def _build_env(pl_data: dict, answer: dict = None) -> dict:
+    def _build_env(pl_data: dict, answer: dict = None) -> AnyStr:
+        """Creates the environment to execute the builder or the grader
+        on the sandbox.
+        """
         env = dict(pl_data['__files'])
         env["components.py"] = components_source()
         
@@ -94,6 +101,8 @@ class PLSession(models.Model):
             "rerollable": self.pl.rerollable,
             "demo":       self.pl.demo
         }
+        if self.saved_data is not None:
+            data["saved"] = self.saved_data
         if "styles" in self.context:
             data["styles"] = self.context["styles"]
         if "scripts" in self.context:
@@ -101,13 +110,16 @@ class PLSession(models.Model):
         return data
     
     
-    async def evaluate(self, answers: dict):
+    async def evaluate(self, answers: dict) -> (int, str):
         pl = await database_sync_to_async(self.__getattribute__)("pl")
         sandbox = await async_get_less_used_sandbox()
         context = {**pl.data, **self.context}
         config = context.get("config", {}).get("grader", DEFAULT_GRADER)
         env = self._build_env(context, answer=answers)
         execution = await sandbox.execute(config=config, environment=env)
+        
+        self.saved_data = answers
+        await database_sync_to_async(self.save)()
         
         if not execution.success:
             raise GradeError(execution.traceback)
@@ -129,6 +141,7 @@ class PLSession(models.Model):
     
     
     async def reroll(self, seed: int = None, params: dict = None):
+        seed = create_seed() if seed is None else seed
         context, seed = await self.build_context(self.pl, seed, params)
         self.context = context
         self.seed = seed
@@ -137,7 +150,7 @@ class PLSession(models.Model):
     
     def best_answer(self):
         return Answer.objects.all().prefetch_related("session").filter(session=self).order_by(
-            "date").order_by("grade")
+            "date", "grade")
     
     
     def last_answer(self):
