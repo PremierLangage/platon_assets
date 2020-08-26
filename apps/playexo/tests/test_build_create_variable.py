@@ -28,11 +28,6 @@ class ViewsTestGrosCase(TransactionTestCase):
         self.user = User.objects.create(username="user", password="password")
         self.logged_ac.force_login(self.user, backend=settings.AUTHENTICATION_BACKENDS[0])
         
-        with open(os.path.join(TEST_DATA_ROOT, "gros.json")) as f:
-            pl_data = json.load(f)
-            
-        # demo = True pour permettre l'usage direct sans activité
-        self.pl = PL.objects.create(name="kldjshfqlkjsdfh", data=pl_data, demo=True)
 
         # test les variables ne sont pas remplacée dans text
         with open(os.path.join(TEST_DATA_ROOT, "variable.json")) as f:
@@ -49,13 +44,22 @@ class ViewsTestGrosCase(TransactionTestCase):
 
     async def test_logged_build_variable(self):
         response = await self.logged_ac.get(reverse("playexo:get_pl", args=[self.pl2.id]))
+        self.assertEquals(await database_sync_to_async(LoggedPLSession.objects.count)(), 1)
+        plsession = (await database_sync_to_async(LoggedPLSession.objects.first)())
         d= json.loads(response.content)
+        self.assertIsNotNone(plsession.context["vir"])
+        self.assertIsNotNone(plsession.context["var"])
         self.assertEqual(d['title'],"title")
-        self.assertEqual(d['text'], "le texte ww{{ var }}ww")
-        self.assertIsNotNone(d['vir'])
-        self.assertIsNotNone(d['var'])
-        self.assertEqual(d['var'],"28")
-        self.assertEqual(d['var'], 28)
+        self.assertEqual(d['text'], "builded")
 
-   # async def test_anon_build_variable(self):
-    #    await self.generic_test_build_gros(self.anon_ac, LoggedPLSession, self.pl2, "var")
+
+    async def test_anon_build_variable(self):
+       response = await self.anon_ac.get(reverse("playexo:get_pl", args=[self.pl2.id]))
+       self.assertEquals(await database_sync_to_async(AnonPLSession.objects.count)(), 1)
+       plsession = (await database_sync_to_async(AnonPLSession.objects.first)())
+       d = json.loads(response.content)
+       self.assertIsNotNone(plsession.context["vir"])
+       self.assertIsNotNone(plsession.context["var"])
+       self.assertEqual(d['title'], "title")
+       self.assertEqual(d['text'], "builded")
+
