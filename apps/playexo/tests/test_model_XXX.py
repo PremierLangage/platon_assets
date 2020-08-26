@@ -15,7 +15,7 @@ TEST_DATA_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_
 
 
 
-class ViewsTestCase(TransactionTestCase):
+class ModelTestCase(TransactionTestCase):
     
     def setUp(self) -> None:
         super().setUp()
