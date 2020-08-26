@@ -151,7 +151,7 @@ ASGI_APPLICATION = 'plato.routing.application'
 DATABASES = {
     'default': {
         'ENGINE':   'django.db.backends.postgresql',
-        'NAME':     'django_sandbox',
+        'NAME':     'django_plato_assets',
         'USER':     'django',
         'PASSWORD': 'django_password',
         'HOST':     '127.0.0.1',

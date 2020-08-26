@@ -41,6 +41,15 @@ jobs:
           python3 manage.py runserver 7000 &> /dev/null &
           cd ..
 
+      - name: Setup PostgreSQL
+        uses: Harmon758/postgresql-action@v1.0.0
+        with:
+          postgresql db: 'django_plato_assets'
+          postgresql user: 'django'
+          postgresql password: 'django_password'
+
+
+
       - name: Install Platon Asset
         run: |
           ./bin/install.sh
