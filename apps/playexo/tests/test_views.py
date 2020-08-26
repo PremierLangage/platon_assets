@@ -107,5 +107,4 @@ class ViewsTestCase(TransactionTestCase):
 
     def test_evaluate_method_not_allowed(self):
         response = self.logged_client.get(reverse("playexo:evaluate_pl", args=[self.pl.id]))
-        print(response.content.decode())
-        self.assertContains(response, "Method Not Allowed", status_code=405)
+        self.assertEquals(response.status_code, 405)
