@@ -39,9 +39,9 @@ class ViewsTestGrosCase(TransactionTestCase):
         super().tearDown()
     
     
-    def doasserts(self,d):
+    def doasserts(self, d):
         self.assertNotIn("var", d)
-        self.assertEqual(d['title'],"title")
+        self.assertEqual(d['title'], "title")
         self.assertEqual(d['text'], "text")
 
 

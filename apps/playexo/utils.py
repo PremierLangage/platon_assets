@@ -11,6 +11,7 @@ from django.http import HttpRequest
 
 from django_sandbox.models import Sandbox
 
+
 # The PL data will always be passed in the pl.json file, and the context
 # must be generated in the file named in result_path
 DEFAULT_BUILDER = {
@@ -75,4 +76,3 @@ def get_anonymous_user_id(request: HttpRequest) -> str:
 def async_is_user_authenticated(user: User) -> bool:
     """Returns if the user is authenticated for async functions"""
     return user.is_authenticated
-

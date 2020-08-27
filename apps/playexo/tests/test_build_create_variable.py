@@ -28,38 +28,33 @@ class ViewsTestGrosCase(TransactionTestCase):
         self.user = User.objects.create(username="user", password="password")
         self.logged_ac.force_login(self.user, backend=settings.AUTHENTICATION_BACKENDS[0])
         
-
         # test les variables ne sont pas remplacée dans text
         with open(os.path.join(TEST_DATA_ROOT, "variable.json")) as f:
             pl_data = json.load(f)
         self.pl2 = PL.objects.create(name="variable", data=pl_data, demo=True)
-
+    
     
     def tearDown(self) -> None:
         super().tearDown()
     
     
-
-    
-
     async def test_logged_build_variable(self):
         response = await self.logged_ac.get(reverse("playexo:get_pl", args=[self.pl2.id]))
         self.assertEquals(await database_sync_to_async(LoggedPLSession.objects.count)(), 1)
         plsession = (await database_sync_to_async(LoggedPLSession.objects.first)())
-        d= json.loads(response.content)
+        d = json.loads(response.content)
         self.assertIsNotNone(plsession.context["vir"])
         self.assertIsNotNone(plsession.context["var"])
-        self.assertEqual(d['title'],"title")
+        self.assertEqual(d['title'], "title")
         self.assertEqual(d['text'], "builded")
-
-
+    
+    
     async def test_anon_build_variable(self):
-       response = await self.anon_ac.get(reverse("playexo:get_pl", args=[self.pl2.id]))
-       self.assertEquals(await database_sync_to_async(AnonPLSession.objects.count)(), 1)
-       plsession = (await database_sync_to_async(AnonPLSession.objects.first)())
-       d = json.loads(response.content)
-       self.assertIsNotNone(plsession.context["vir"])
-       self.assertIsNotNone(plsession.context["var"])
-       self.assertEqual(d['title'], "title")
-       self.assertEqual(d['text'], "builded")
-
+        response = await self.anon_ac.get(reverse("playexo:get_pl", args=[self.pl2.id]))
+        self.assertEquals(await database_sync_to_async(AnonPLSession.objects.count)(), 1)
+        plsession = (await database_sync_to_async(AnonPLSession.objects.first)())
+        d = json.loads(response.content)
+        self.assertIsNotNone(plsession.context["vir"])
+        self.assertIsNotNone(plsession.context["var"])
+        self.assertEqual(d['title'], "title")
+        self.assertEqual(d['text'], "builded")
