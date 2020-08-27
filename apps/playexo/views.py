@@ -69,6 +69,11 @@ async def get_pl(request, pl_id: int) -> HttpResponse:
 
 
 def post_pl(request) -> HttpResponse:
+    """
+    Ne pas utiliser 
+    :param request:
+    :return:
+    """
     post = request.POST
     if "name" not in post or "data" not in post:
         return HttpResponseBadRequest("Missing 'name' or 'data' field")
