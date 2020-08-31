@@ -6,6 +6,7 @@ from django.http import (HttpRequest, HttpResponse, HttpResponseBadRequest, Http
                          JsonResponse)
 from django.views.decorators.http import require_POST
 
+from playexo.exceptions import BuildError, GradeError, SandboxError
 from playexo.models import AnonPLSession, Answer, LoggedPLSession, PL, PLSession
 from playexo.utils import async_is_user_authenticated, get_anonymous_user_id
 from utils.decorators import async_require_get, async_require_post
@@ -29,6 +30,7 @@ async def retrieve_session(request: HttpRequest, pl: PL) -> Optional[PLSession]:
         except AnonPLSession.DoesNotExist:
             return None
     return session
+
 
 
 @async_require_post
@@ -55,7 +57,10 @@ async def evaluate_pl(request: HttpRequest, pl_id: int) -> HttpResponse:
         return HttpResponseBadRequest("Missing answer field")
     answer = request.POST["answer"]
     
-    grade, feedback = await session.evaluate(answer)
+    try:
+        grade, feedback = await session.evaluate(answer)
+    except (GradeError, SandboxError) as e:
+        return HttpResponse(e)
     await database_sync_to_async(Answer.objects.create)(session=session, answer=answer,
                                                         seed=session.seed, grade=grade)
     
@@ -88,15 +93,22 @@ async def get_pl(request, pl_id: int) -> HttpResponse:
                 LoggedPLSession.objects.select_related('pl').get)(
                 user=request.user, pl=pl)
         except LoggedPLSession.DoesNotExist:
-            session = await LoggedPLSession.build(pl, request.user)
+            try:
+                session = await LoggedPLSession.build(pl, request.user)
+            except (BuildError, SandboxError) as e:
+                return HttpResponse(e)
     else:
         user_id = get_anonymous_user_id(request)
         try:
             session = await database_sync_to_async(AnonPLSession.objects.select_related('pl').get)(
                 user_id=user_id, pl=pl)
         except AnonPLSession.DoesNotExist:
-            session = await AnonPLSession.build(pl, user_id)
+            try:
+                session = await AnonPLSession.build(pl, user_id)
+            except BuildError as e:
+                return HttpResponse(e)
     return JsonResponse(session.get_view_data())
+
 
 
 @require_POST
@@ -109,6 +121,7 @@ def post_pl(request) -> HttpResponse:
         return HttpResponseBadRequest("Missing 'name' or 'data' field")
     pl = PL.objects.create(name=post["name"], data=post["data"], demo=True)
     return JsonResponse(data={"pl_id": pl.id})
+
 
 
 @async_require_post
@@ -129,12 +142,16 @@ async def reroll(request, pl_id):
     session = await retrieve_session(request, pl)
     if session is None:
         return HttpResponseNotFound("Could not retrieve the PL session")
-    if "seed" in request.POST:
-        await session.reroll(seed=request.POST["seed"])
-    else:
-        await session.reroll()
+    try:
+        if "seed" in request.POST:
+            await session.reroll(seed=request.POST["seed"])
+        else:
+            await session.reroll()
+    except (BuildError, SandboxError) as e:
+        return HttpResponse(e)
     
     return JsonResponse(session.get_view_data())
+
 
 
 @async_require_post

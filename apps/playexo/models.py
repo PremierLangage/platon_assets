@@ -11,7 +11,7 @@ from assets.models import Asset
 from playactivity.models import Activity
 from playcourse.models import Course
 from playexo.components import components_source
-from playexo.exceptions import BuildError, GradeError
+from playexo.exceptions import BuildError, GradeError, SandboxError
 from playexo.utils import (DEFAULT_BUILDER, DEFAULT_GRADER, async_get_less_used_sandbox,
                            create_seed,
                            tar_from_dic)
@@ -69,6 +69,14 @@ class PLSession(models.Model):
     
     @classmethod
     async def build_context(cls, pl: PL, seed: int = None, params: dict = None) -> (dict, int):
+        """Returns the context built with the pl passed as argument.
+        seed and params are optional.
+        Returns (context, seed) where context is built using the sandbox and
+        seed is the seed used to build the PL. If there was no seed specified,
+        it is before calling the builder here.
+        It will use a default "config" if there is no "config" field in the PL
+        data.
+        """
         pl_data = dict(pl.data)
         if params is not None:
             pl_data = pl_data.update(params)
@@ -83,16 +91,26 @@ class PLSession(models.Model):
         config = pl_data.get("config", {}).get("builder", DEFAULT_BUILDER)
         if config is not None:
             logger.info("Building on sandbox '" + str(sandbox) + "'.")
-            execution = await sandbox.execute(config=config, environment=env)
+            try:
+                execution = await sandbox.execute(config=config, environment=env)
+            except Exception as e:
+                raise SandboxError(f"Could not join the sandbox: {e}")
             
             if not execution.success:
                 raise BuildError(execution.traceback)
             else:
-                return json.loads(execution.response["result"]), pl_data["seed"]
+                response = execution.response
+                for command in response["execution"]:
+                    if command["exit_code"] != 0:
+                        raise BuildError(
+                            f"Command: {command['command']}\nstderr: {command['stderr']}")
+                return json.loads(response["result"]), pl_data["seed"]
         return pl_data, pl_data["seed"]
     
     
     def get_view_data(self) -> dict:
+        """Returns the fields of context useful for the view to display
+        the PL"""
         data = {
             "title":      self.context["title"],
             "form":       self.context["form"],
@@ -111,27 +129,39 @@ class PLSession(models.Model):
     
     
     async def evaluate(self, answers: dict) -> (int, str):
+        """Return a tuple (grade, feedback) after evaluating the answer of a
+        user.
+        The sandbox must be called to evaluate the PL and fields 'grade' and
+        'feedback' must be added to the output of the config.
+        """
         pl = await database_sync_to_async(self.__getattribute__)("pl")
         sandbox = await async_get_less_used_sandbox()
         context = {**pl.data, **self.context}
         config = context.get("config", {}).get("grader", DEFAULT_GRADER)
         env = self._build_env(context, answer=answers)
-        execution = await sandbox.execute(config=config, environment=env)
-        
+        try:
+            logger.info("Evaluate on sandbox '" + str(sandbox) + "'.")
+            execution = await sandbox.execute(config=config, environment=env)
+        except Exception as e:
+            raise SandboxError(f"Could not join the sandbox: {e}")
         self.saved_data = answers
         await database_sync_to_async(self.save)()
         
         if not execution.success:
             raise GradeError(execution.traceback)
         else:
-            new_context = json.loads(execution.response["result"])
+            response = execution.response
+            for command in response["execution"]:
+                if command["exit_code"] != 0:
+                    raise GradeError(f"Command: {command['command']}\nstderr: {command['stderr']}")
+            new_context = json.loads(response["result"])
         try:
             grade = new_context["grade"]
             feedback = new_context["feedback"]
             del new_context["grade"]
             del new_context["feedback"]
         except KeyError as e:
-            raise GradeError("grade and feedback must be added to context")
+            raise GradeError("'grade' and 'feedback' fields must be added to context")
         
         self.context.update(new_context)
         self.try_count += 1
@@ -141,6 +171,9 @@ class PLSession(models.Model):
     
     
     async def reroll(self, seed: int = None, params: dict = None):
+        """Method used to rebuild a PL with another seed.
+        The seed can be specified and fields can be added to the PL using the
+        params argument"""
         seed = create_seed() if seed is None else seed
         context, seed = await self.build_context(self.pl, seed, params)
         self.context = context
@@ -149,16 +182,19 @@ class PLSession(models.Model):
     
     
     def best_answer(self):
-        return Answer.objects.all().prefetch_related("session").filter(session=self).order_by(
-            "date", "grade")
+        """Returns the best answer for this session"""
+        return Answer.objects.all().select_related("session").filter(session=self).order_by("grade",
+                                                                                            "date")
     
     
     def last_answer(self):
-        return Answer.objects.all().prefetch_related("session").filter(session=self).latest()
+        """Retunrs the last answer for this session"""
+        return Answer.objects.all().select_related("session").filter(session=self).latest()
 
 
 
 class LoggedPLSession(PLSession):
+    """PLSession used for a logged user"""
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     
     
@@ -171,6 +207,7 @@ class LoggedPLSession(PLSession):
 
 
 class AnonPLSession(PLSession):
+    """PLSession used for an anonymous user"""
     user_id = models.UUIDField(null=False)
     
     
@@ -184,6 +221,7 @@ class AnonPLSession(PLSession):
 
 
 class Answer(models.Model):
+    """Models used to represents an Answer to a PL in the database"""
     session = models.ForeignKey(PLSession, null=True, on_delete=models.SET_NULL)
     date = models.DateField(default=timezone.now)
     answer = models.JSONField()
