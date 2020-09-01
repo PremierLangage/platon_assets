@@ -50,7 +50,7 @@ class ViewsTestGrosCase(TransactionTestCase):
         self.assertIsNotNone(plsession.context["vir"])
         self.assertIsNotNone(plsession.context["var"])
         self.assertEqual(d['title'],"title")
-        self.assertEqual(d['text'], "builded")
+        self.assertEqual(d['text'], "le texte ww26ww")
 
 
     async def test_anon_build_variable(self):
