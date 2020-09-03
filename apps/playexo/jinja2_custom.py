@@ -19,7 +19,7 @@ def make_list(s):
 
 
 def first(elem):
-    return l[0] if l else None
+    return elem[0] if elem else None
 
 
 

@@ -95,10 +95,7 @@ class PLSession(models.Model):
                                                                             "form"])
         for key in jinja_keys:
             if type(context[key]) is str:
-                try:
-                    context[key] = jinja_env.from_string(context[key]).render(**self.context)
-                except Exception as e:
-                    continue
+                context[key] = jinja_env.from_string(context[key]).render(**self.context)
         data = {
             "title":      context["title"],
             "form":       context["form"],
