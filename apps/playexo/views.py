@@ -33,7 +33,8 @@ async def evaluate_pl(request: HttpRequest, pl_id: int) -> HttpResponse:
         return HttpResponseBadRequest("Missing answer field")
     answer = request.POST["answer"]
     grade, feedback = await session.evaluate(answer)
-    await database_sync_to_async(Answer.objects.create)(session=session, answer=answer, seed=session.seed, grade=grade)
+    await database_sync_to_async(Answer.objects.create)(session=session, answer=answer,
+                                                        seed=session.seed, grade=grade)
     data = session.get_view_data()
     data["feedback"] = feedback
     data["grade"] = grade
@@ -70,9 +71,7 @@ async def get_pl(request, pl_id: int) -> HttpResponse:
 
 def post_pl(request) -> HttpResponse:
     """
-    Ne pas utiliser 
-    :param request:
-    :return:
+    Ne pas utiliser
     """
     post = request.POST
     if "name" not in post or "data" not in post:

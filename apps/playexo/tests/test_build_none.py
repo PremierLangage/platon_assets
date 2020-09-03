@@ -28,27 +28,27 @@ class ViewsTestGrosCase(TransactionTestCase):
         self.user = User.objects.create(username="user", password="password")
         self.logged_ac.force_login(self.user, backend=settings.AUTHENTICATION_BACKENDS[0])
         
-
         # test les variables ne sont pas remplacée dans text
         with open(os.path.join(TEST_DATA_ROOT, "buildernone.json")) as f:
             pl_data = json.load(f)
         self.pl = PL.objects.create(name="variable", data=pl_data, demo=True)
-
+    
     
     def tearDown(self) -> None:
         super().tearDown()
     
     
-    def doasserts(self,d):
+    def doasserts(self, d):
         self.assertNotIn("var", d)
-        self.assertEqual(d['title'],"title")
+        self.assertEqual(d['title'], "title")
         self.assertEqual(d['text'], "text")
-
-
+    
+    
     async def test_logged_build_none(self):
         response = await self.logged_ac.get(reverse("playexo:get_pl", args=[self.pl.id]))
         self.doasserts(json.loads(response.content))
-
+    
+    
     async def test_anon_build_none(self):
         response = await self.anon_ac.get(reverse("playexo:get_pl", args=[self.pl.id]))
         self.doasserts(json.loads(response.content))

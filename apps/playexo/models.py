@@ -1,6 +1,7 @@
 import json
 import logging
 
+import jinja2
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import User
 from django.db import models
@@ -9,6 +10,7 @@ from django.utils import timezone
 from assets.models import Asset
 from playactivity.models import Activity
 from playcourse.models import Course
+from playexo import jinja2_custom
 from playexo.components import components_source
 from playexo.exceptions import BuildError, GradeError
 from playexo.utils import (DEFAULT_BUILDER, DEFAULT_GRADER, async_get_less_used_sandbox,
@@ -86,18 +88,29 @@ class PLSession(models.Model):
     
     
     def get_view_data(self) -> dict:
+        context = dict(self.context)
+        jinja_env = jinja2_custom.environment(undefined=jinja2_custom.CustomUndefined)
+        jinja_keys = self.context.get("config", {}).get("filters", {}).get("jinja2",
+                                                                           ["title", "text",
+                                                                            "form"])
+        for key in jinja_keys:
+            if type(context[key]) is str:
+                try:
+                    context[key] = jinja_env.from_string(context[key]).render(**self.context)
+                except Exception as e:
+                    continue
         data = {
-            "title":      self.context["title"],
-            "form":       self.context["form"],
-            "text":       self.context["text"],
-            "config":     self.context.get("config", {}),
+            "title":      context["title"],
+            "form":       context["form"],
+            "text":       context["text"],
+            "config":     context.get("config", {}),
             "rerollable": self.pl.rerollable,
             "demo":       self.pl.demo
         }
-        if "styles" in self.context:
-            data["styles"] = self.context["styles"]
-        if "scripts" in self.context:
-            data["scripts"] = self.context["scripts"],
+        if "styles" in context:
+            data["styles"] = context["styles"]
+        if "scripts" in context:
+            data["scripts"] = context["scripts"],
         return data
     
     

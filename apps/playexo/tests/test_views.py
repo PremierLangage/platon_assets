@@ -24,6 +24,7 @@ class ViewsTestCase(TransactionTestCase):
                                               url=settings.DEFAULT_TEST_SANDBOX,
                                               enabled=True)
         self.logged_client = Client()
+        self.anon_client = Client()
         self.anon_ac = AsyncClient()
         self.logged_ac = AsyncClient()
         self.user = User.objects.create(username="user", password="password")
@@ -50,10 +51,10 @@ class ViewsTestCase(TransactionTestCase):
         self.assertEquals(await database_sync_to_async(session.objects.count)(), 0)
         response = await client.get(reverse("playexo:get_pl", args=[self.pl.id]))
         self.assertEquals(await database_sync_to_async(session.objects.count)(), 1)
-        self.assertContains(response, "op1", status_code=200)
+        self.assertContains(response, "Combien", status_code=200)
         response = await client.get(reverse("playexo:get_pl", args=[self.pl.id]))
         self.assertEquals(await database_sync_to_async(session.objects.count)(), 1)
-        self.assertContains(response, "op1", status_code=200)
+        self.assertContains(response, "Combien", status_code=200)
     
     
     async def test_logged_build_random_add(self):
@@ -65,20 +66,22 @@ class ViewsTestCase(TransactionTestCase):
     
     
     async def generic_test_evaluate_random_add(self, client, session):
-        response = await database_sync_to_async(client.get)(reverse("playexo:get_pl", args=[self.pl.id]))
-        self.assertContains(response, "op1", status_code=200)
+        response = await database_sync_to_async(client.get)(
+            reverse("playexo:get_pl", args=[self.pl.id]))
+        self.assertContains(response, "Combien", status_code=200)
         self.assertEquals(await database_sync_to_async(session.objects.count)(), 1)
         context = (await database_sync_to_async(list)(session.objects.all()))[0].context
         result = context["op1"] + context["op2"]
         
-
         response = await database_sync_to_async(client.post)(reverse("playexo:post_pl"),
-                                           {"data": self.pl.data, "name": "random_add"})
+                                                             {"data": self.pl.data,
+                                                              "name": "random_add"})
         self.assertEquals(await database_sync_to_async(PL.objects.count)(), 2)
         self.assertContains(response, "", status_code=200)
         
-        response = await database_sync_to_async(client.post)(reverse("playexo:evaluate_pl", args=[self.pl.id]),
-                                     {"answer": result})
+        response = await database_sync_to_async(client.post)(
+            reverse("playexo:evaluate_pl", args=[self.pl.id]),
+            {"answer": result})
         self.assertContains(response, "", status_code=200)
     
     
@@ -86,14 +89,13 @@ class ViewsTestCase(TransactionTestCase):
         await self.generic_test_evaluate_random_add(self.logged_client, LoggedPLSession)
     
     
-    """
     async def test_anon_evaluate_random_add(self):
-        await self.generic_test_evaluate_random_add(self.anon_ac, AnonPLSession)"""
+        await self.generic_test_evaluate_random_add(self.anon_client, AnonPLSession)
     
     
     async def test_evaluate_no_answer(self):
         response = await self.logged_ac.get(reverse("playexo:get_pl", args=[self.pl.id]))
-        self.assertContains(response, "op1", status_code=200)
+        self.assertContains(response, "Combien", status_code=200)
         self.assertEquals(await database_sync_to_async(LoggedPLSession.objects.count)(), 1)
         response = await self.logged_ac.post(reverse("playexo:evaluate_pl", args=[self.pl.id]))
         self.assertContains(response, "Missing answer field", status_code=400)

@@ -72,10 +72,12 @@ class Component:
         and initializes its fields with the given dict `data`.
 
         - If `target` is already an instance of `Component` values of
-        `data` will be copied into it. (always true if deserialized during grade)
+        `data` will be copied into it. (always true if deserialized during
+        grade)
 
-        - if 'target' is a dict (always true during build) and `decorator` key is in it,
-        target will be instancied as an instance of decorator retrieved from the sandbox.
+        - if 'target' is a dict (always true during build) and `decorator` key
+        is in it, target will be instancied as an instance of decorator
+        retrieved from the sandbox.
 
         - If none of the case above are not respected, the method will creates
         and instance of the type depending of `selector` key of `data`.

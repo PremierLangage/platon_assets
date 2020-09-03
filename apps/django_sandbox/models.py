@@ -106,7 +106,8 @@ class Sandbox(models.Model):
         will be produced, all the other fields, with the exception of `sandbox`
         and `date` will be None."""
         if not self.enabled:
-            return await database_sync_to_async(SandboxUsage.objects.create)(sandbox=self, enabled=False)
+            return await database_sync_to_async(SandboxUsage.objects.create)(sandbox=self,
+                                                                             enabled=False)
         
         try:
             async with ASandbox(self.url) as asandbox:
@@ -125,12 +126,14 @@ class Sandbox(models.Model):
                 receiving_bytes=raw["network"]["received_bytes"]
             )
         except ClientError:
-            usage = await database_sync_to_async(SandboxUsage.objects.create)(sandbox=self, reached=False)
+            usage = await database_sync_to_async(SandboxUsage.objects.create)(sandbox=self,
+                                                                              reached=False)
         
         return usage
     
     
-    async def execute(self, config: Dict[str, Any], user: User = None, environment: BinaryIO = None) -> 'SandboxExecution':
+    async def execute(self, config: Dict[str, Any], user: User = None,
+                      environment: BinaryIO = None) -> 'SandboxExecution':
         """Execute a request on the Sandbox based on `config` and
         `environment`.
         
@@ -170,18 +173,21 @@ class Sandbox(models.Model):
             
             async with ASandbox(self.url) as asandbox:
                 response = await asandbox.execute(config, environment)
-
+            
             func = database_sync_to_async(SandboxExecution.objects.create)
             execution = await func(sandbox=self, user=user, config=config, response=response)
         
         except ClientError:
             func = database_sync_to_async(SandboxExecution.objects.create)
-            execution = await func(sandbox=self, user=user, config=config, success=False, traceback=traceback.format_exc())
-            logger.warning(f"Execution failed on sandbox {self}, see execution of id '{execution.pk}'")
+            execution = await func(sandbox=self, user=user, config=config, success=False,
+                                   traceback=traceback.format_exc())
+            logger.warning(
+                f"Execution failed on sandbox {self}, see execution of id '{execution.pk}'")
         
         except SandboxDisabledError:
             func = database_sync_to_async(SandboxExecution.objects.create)
-            execution = await func(sandbox=self, user=user, config=config, success=False, traceback=traceback.format_exc())
+            execution = await func(sandbox=self, user=user, config=config, success=False,
+                                   traceback=traceback.format_exc())
             logger.warning(f"Execution failed on sandbox {self} because it was disabled,"
                            f"see execution of id '{execution.pk}'")
         
@@ -429,8 +435,10 @@ class SandboxExecution(models.Model):
     `traceback` will be an empty string if `success` is True, and `response`
     will be None if `success` is False.
     """
-    sandbox = models.ForeignKey(Sandbox, related_name="executions", null=True, on_delete=models.SET_NULL)
-    user = models.ForeignKey(User, related_name="executions", null=True, blank=True, on_delete=models.SET_NULL)
+    sandbox = models.ForeignKey(Sandbox, related_name="executions", null=True,
+                                on_delete=models.SET_NULL)
+    user = models.ForeignKey(User, related_name="executions", null=True, blank=True,
+                             on_delete=models.SET_NULL)
     date = models.DateTimeField(auto_now_add=True)
     success = models.BooleanField(default=True)
     traceback = models.TextField(default="")

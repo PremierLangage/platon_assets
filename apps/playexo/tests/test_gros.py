@@ -30,10 +30,10 @@ class ViewsTestGrosCase(TransactionTestCase):
         
         with open(os.path.join(TEST_DATA_ROOT, "gros.json")) as f:
             pl_data = json.load(f)
-            
+        
         # demo = True pour permettre l'usage direct sans activité
         self.pl = PL.objects.create(name="kldjshfqlkjsdfh", data=pl_data, demo=True)
-
+    
     
     def tearDown(self) -> None:
         super().tearDown()
@@ -42,19 +42,20 @@ class ViewsTestGrosCase(TransactionTestCase):
     async def generic_test_build_gros(self, client, session, pl, message):
         self.assertEquals(await database_sync_to_async(session.objects.count)(), 0)
         response = await client.get(reverse("playexo:get_pl", args=[pl.id]))
-	# verifions que la session est créée
+        # verifions que la session est créée
         self.assertContains(response, message, status_code=200)
         self.assertEquals(await database_sync_to_async(session.objects.count)(), 1)
-
+        
         response = await client.get(reverse("playexo:get_pl", args=[pl.id]))
-	# verifions que la session n'est pas créée
-
+        # verifions que la session n'est pas créée
+        
         self.assertEquals(await database_sync_to_async(session.objects.count)(), 1)
         self.assertContains(response, message, status_code=200)
     
     
     async def test_logged_build_gros(self):
         await self.generic_test_build_gros(self.logged_ac, LoggedPLSession, self.pl, "Affixe")
-
+    
+    
     async def test_anon_build_gros(self):
         await self.generic_test_build_gros(self.anon_ac, AnonPLSession, self.pl, "Affixe")
