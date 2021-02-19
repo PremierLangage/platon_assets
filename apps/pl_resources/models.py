@@ -20,7 +20,6 @@ class Resource(models.Model):
     
 
 
-
 class Circle(Resource):
     """Represents a unique circle"""
     parent = models.ForeignKey('self', null=True, on_delete=models.CASCADE)

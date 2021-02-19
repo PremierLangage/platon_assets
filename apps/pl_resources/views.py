@@ -5,12 +5,71 @@ import dgeq
 from channels.db import database_sync_to_async
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import Http404, JsonResponse
-from django.shortcuts import render
+from rest_framework import generics, mixins, status
+from rest_framework.request import Request
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from common.async_db import has_perm_async
-from common.enums import ErrorCode
-from common.mixins import AsyncView
-from common.validators import check_unknown_fields, check_unknown_missing_fields
-from .models import Circle, Resource, File
+from .serializers import CircleSerializer, CircleResourceSerializer
+from .models import Circle
 
+
+
+class CircleList(mixins.ListModelMixin, mixins.CreateModelMixin, generics.GenericAPIView):
+    queryset = Circle.objects.all()
+    serializer_class = CircleSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+
+class CircleDetail(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, generics.GenericAPIView):
+    """View that allow to retrieve the informations of a single user"""
+    queryset = Circle.objects.all()
+    serializer_class = CircleSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        """update cirle"""
+        return self.update(request, *args, **kwargs)
+
+    def patch(self, request, *args, **kwargs):
+        """update resource of circle"""
+        # TODO changement de file.
+        return self.update(request, *args, **kwargs)
+
+
+class CircleResourceDetail(mixins.RetrieveModelMixin, generics.GenericAPIView):
+    """View that allow to retrieve the informations of a single user"""
+    queryset = Circle.objects.all()
+    serializer_class = CircleResourceSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+
+class CircleResourceTree(generics.ListAPIView):
+    """retrive all parents of a single Circle"""
+    queryset = Circle.objects.all()
+    serializer_class = CircleSerializer
+
+    def get_queryset(self):
+        queryset = Circle.objects.all()
+        tree_id = []
+        id_circle = self.request.query_params.get('id_circle', None)
+        
+        if id_circle is not None:
+            tree_id.append(id_circle)
+            circle = Circle.objects.get(id=id_circle)
+            while(circle and circle.parent):
+                circle = circle.parent
+                tree_id.append(circle.id)
+            
+        queryset = queryset.filter(circle__pk__in=tree_id)
+        return queryset 
 
