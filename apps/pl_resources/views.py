@@ -1,8 +1,7 @@
 import json
 from typing import Optional
 
-import dgeq
-from channels.db import database_sync_to_async
+from common.errors import RestError
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import Http404, JsonResponse
 from rest_framework import generics, mixins, status
@@ -15,7 +14,7 @@ from .models import Circle
 
 
 
-class CircleList(mixins.ListModelMixin, mixins.CreateModelMixin, generics.GenericAPIView):
+class CircleList(mixins.ListModelMixin, generics.GenericAPIView):
     queryset = Circle.objects.all()
     serializer_class = CircleSerializer
 
@@ -23,7 +22,21 @@ class CircleList(mixins.ListModelMixin, mixins.CreateModelMixin, generics.Generi
         return self.list(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
+        id_parent = self.request.query_params.get('id_circle', None)
+        parent = None
+        
+        if id_parent is not None:
+            parent = Circle.objects.get(pk=id_parent)
+        kwargs = json.loads(request.body)
+        kwargs['parent'] = parent
+        circle = Circle.objects.create(kwargs)
+        if not circle:
+            return Response(
+            RestError('circle/not-found'),
+            status=status.HTTP_400_BAD_REQUEST
+        )
+        serializer = CircleSerializer(circle)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CircleDetail(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, generics.GenericAPIView):
