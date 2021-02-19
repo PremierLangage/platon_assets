@@ -13,7 +13,6 @@ from .serializers import CircleSerializer, CircleResourceSerializer
 from .models import Circle
 
 
-
 class CircleList(mixins.ListModelMixin, generics.GenericAPIView):
     queryset = Circle.objects.all()
     serializer_class = CircleSerializer
@@ -85,4 +84,3 @@ class CircleResourceTree(generics.ListAPIView):
             
         queryset = queryset.filter(circle__pk__in=tree_id)
         return queryset 
-
