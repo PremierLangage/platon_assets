@@ -20,17 +20,25 @@ class CircleList(mixins.ListModelMixin, generics.GenericAPIView):
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args, **kwargs):
         
-        id_parent = self.request.query_params.get('id_circle', None)
+        id_parent = request.data.get('parent_id')
+        path = request.data.get('path')
+        name = request.data.get('name')
+        description = request.data.get('description')
+        tags = request.data.get('tags')
+
         parent = None
         
         if id_parent is not None:
             parent = Circle.objects.get(id=id_parent)
         
-        #kwargs = json.loads(request.data)
-        #kwargs['parent'] = parent
-        circle = Circle.objects.create(parent= parent,  **kwargs)
+        circle = Circle.objects.create(
+            parent= parent,name=name,
+            description=description,
+            tags=tags,
+            path=path
+        )
         
         if not circle:
             return Response(
@@ -48,8 +56,8 @@ class CircleDetail(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, generics.
     queryset = Circle.objects.all()
     serializer_class = CircleSerializer
 
-    def get(self, request, *args, **kwargs):
-        return self.retrieve(request, *args, **kwargs)
+    def get(self, request, pk):
+        return self.retrieve(request, pk=pk)
 
     def put(self, request, *args, **kwargs):
         """update cirle"""
