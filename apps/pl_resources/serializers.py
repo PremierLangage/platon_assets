@@ -7,12 +7,12 @@ class CircleResourceSerializer(serializers.ModelSerializer):
     files = serializers.StringRelatedField(many=True)
 
     class Meta:
-        Model = Circle
-        fields = ['id', 'name', 'path', 'description', 'files']
+        model = Circle
+        fields = ('id', 'name', 'path', 'description', 'files')
 
 
 class CircleSerializer(serializers.ModelSerializer):
     
     class Meta:
-        Model = Circle
-        fields = ['id', 'name', 'path', 'description']
+        model = Circle
+        fields = ('id', 'name', 'path', 'description')

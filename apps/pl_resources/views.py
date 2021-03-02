@@ -21,14 +21,17 @@ class CircleList(mixins.ListModelMixin, generics.GenericAPIView):
         return self.list(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
+        
         id_parent = self.request.query_params.get('id_circle', None)
         parent = None
         
         if id_parent is not None:
-            parent = Circle.objects.get(pk=id_parent)
-        kwargs = json.loads(request.body)
-        kwargs['parent'] = parent
-        circle = Circle.objects.create(kwargs)
+            parent = Circle.objects.get(id=id_parent)
+        
+        #kwargs = json.loads(request.data)
+        #kwargs['parent'] = parent
+        circle = Circle.objects.create(parent= parent,  **kwargs)
+        
         if not circle:
             return Response(
             RestError('circle/not-found'),
@@ -36,6 +39,8 @@ class CircleList(mixins.ListModelMixin, generics.GenericAPIView):
         )
         serializer = CircleSerializer(circle)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+        
 
 
 class CircleDetail(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, generics.GenericAPIView):

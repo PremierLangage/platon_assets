@@ -25,6 +25,7 @@ urlpatterns = [
 
     path('api/auth/', include('pl_auth.urls', namespace='pl_auth')),
     path('api/sandbox/', include('django_sandbox.urls', namespace='pl_sandbox')),
+    path('api/resources/', include('pl_resources.urls', namespace='pl_circle')),
 
     path('', TemplateView.as_view(template_name='index.html'))
 ]

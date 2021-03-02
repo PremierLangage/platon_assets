@@ -22,7 +22,7 @@ class Resource(models.Model):
 
 class Circle(Resource):
     """Represents a unique circle"""
-    parent = models.ForeignKey('self', null=True, on_delete=models.CASCADE)
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE)
     users = models.ManyToManyField(User)
 
 
