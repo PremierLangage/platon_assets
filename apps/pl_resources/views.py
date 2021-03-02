@@ -20,7 +20,7 @@ class CircleList(mixins.ListModelMixin, generics.GenericAPIView):
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
-    def post(self, request: Request, *args, **kwargs):
+    def post(self, request: Request, pk):
         
         id_parent = request.data.get('parent_id')
         path = request.data.get('path')
@@ -56,17 +56,27 @@ class CircleDetail(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, generics.
     queryset = Circle.objects.all()
     serializer_class = CircleSerializer
 
-    def get(self, request, pk):
+    @property
+    def allowed_methods(self):
+        """
+        Return the list of allowed HTTP methods, uppercased.
+        """
+        self.http_method_names.append("patch")
+        self.http_method_names.append("put")
+        return [method.upper() for method in self.http_method_names
+                if hasattr(self, method)]
+
+    def get(self, request : Request, pk):
         return self.retrieve(request, pk=pk)
 
-    def put(self, request, *args, **kwargs):
+    def put(self, request: Request, pk):
         """update cirle"""
-        return self.update(request, *args, **kwargs)
+        return self.update(request, pk=pk)
 
-    def patch(self, request, *args, **kwargs):
+    def patch(self, request: Request, pk):
         """update resource of circle"""
         # TODO changement de file.
-        return self.update(request, *args, **kwargs)
+        return self.partial_update(request, pk=pk)
 
 
 class CircleResourceDetail(mixins.RetrieveModelMixin, generics.GenericAPIView):
