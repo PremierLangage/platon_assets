@@ -15,6 +15,5 @@ urlpatterns = [
     path(
         'circles/<int:pk>/tree/',
         views.CircleResourceTree.as_view(),
-        name='circle-resources-tree')
-    ,
+        name='circle-resources-tree'),
 ]

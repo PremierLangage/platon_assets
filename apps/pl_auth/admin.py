@@ -10,7 +10,6 @@ class ProfileInline(admin.StackedInline):
     can_delete = False
 
 
-
 class UserAdmin(UserAdmin):
     inlines = (ProfileInline,)
 

@@ -34,7 +34,7 @@ class CircleList(mixins.ListModelMixin, generics.GenericAPIView):
             parent = Circle.objects.get(id=id_parent)
         
         circle = Circle.objects.create(
-            parent= parent,name=name,
+            parent=parent, name=name,
             description=description,
             tags=tags,
             path=path
@@ -42,9 +42,9 @@ class CircleList(mixins.ListModelMixin, generics.GenericAPIView):
         
         if not circle:
             return Response(
-            RestError('circle/not-found'),
-            status=status.HTTP_400_BAD_REQUEST
-        )
+                RestError('circle/not-found'),
+                status=status.HTTP_400_BAD_REQUEST
+            )
         serializer = CircleSerializer(circle)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -66,7 +66,7 @@ class CircleDetail(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, generics.
         return [method.upper() for method in self.http_method_names
                 if hasattr(self, method)]
 
-    def get(self, request : Request, pk):
+    def get(self, request: Request, pk):
         return self.retrieve(request, pk=pk)
 
     def put(self, request: Request, pk):
@@ -106,4 +106,4 @@ class CircleResourceTree(generics.ListAPIView):
                 tree_id.append(circle.id)
             
         queryset = queryset.filter(circle__pk__in=tree_id)
-        return queryset 
+        return queryset
